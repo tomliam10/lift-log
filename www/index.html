@@ -53,7 +53,6 @@ h1,h2,h3{font-family:var(--display);font-weight:700;letter-spacing:.01em;margin:
 
 header.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-top:18px}
 header.top h1{font-size:30px;text-transform:uppercase;letter-spacing:.04em}
-header.top .sync{font-size:12px;color:var(--muted)}
 nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:10px 0;margin-top:6px}
 nav.tabs button{border:0;background:transparent;padding:9px 4px;border-radius:8px;font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
 nav.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg)}
@@ -67,7 +66,7 @@ main{display:flex;flex-direction:column;gap:16px;padding-top:6px}
 
 .datebar{display:flex;align-items:center;gap:8px}
 .datebar .date{flex:1;text-align:center;font-family:var(--display);font-size:24px;font-weight:600;min-width:0}
-.iconbtn{width:40px;height:40px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:18px;line-height:1}
+.iconbtn{width:44px;height:44px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-size:18px;line-height:1}
 .linkbtn{border:0;background:none;color:var(--accent);padding:4px 0;font-weight:600}
 .planned{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
 
@@ -79,7 +78,7 @@ main{display:flex;flex-direction:column;gap:16px;padding-top:6px}
 @media (max-width:420px){.stats{grid-template-columns:repeat(2,1fr)}.stats>div:nth-child(3){border-left:0}.stats>div:nth-child(n+3){border-top:1px solid var(--line)}}
 
 .chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:500;font-size:14px}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:500;font-size:14px}
 .chip i{width:9px;height:9px;border-radius:50%;background:var(--gc,var(--muted));flex:none}
 .chip[aria-pressed="true"]{border-color:var(--gc,var(--ink));background:color-mix(in srgb,var(--gc,var(--ink)) 16%,var(--surface));font-weight:600}
 .chip.static{padding:3px 10px;font-size:13px}
@@ -168,12 +167,13 @@ main{display:flex;flex-direction:column;gap:16px;padding-top:6px}
 
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 html,body{-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
-button{-webkit-appearance:none;appearance:none}
+button{-webkit-appearance:none;appearance:none;touch-action:manipulation}
+input,select{touch-action:manipulation}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="top"><h1>Lift Log</h1><span class="sync small" id="sync"></span></header>
+  <header class="top"><h1>Lift Log</h1></header>
   <nav class="tabs" role="tablist" id="tabs"></nav>
   <main id="view"></main>
 </div>
@@ -202,8 +202,8 @@ var LIB={
 var LEVELS={beginner:{name:'Beginner',sub:'under 1 year lifting',kg:.9},intermediate:{name:'Intermediate',sub:'1 to 3 years',kg:.45},advanced:{name:'Advanced',sub:'3+ years',kg:.2}};
 
 /* ---------- state ---------- */
-var S=defaults(), tab='log', viewDate=ymd(new Date()), draft={g:'chest',ex:'',sets:[],mode:'lift',c:{type:'Walking',min:'',dist:'',kcal:''}}, confirmReset=false, dbDoc=null, saveTimer=null;
-function defaults(){return {v:1,upd:0,profile:{kg:77,unit:'lb',level:'beginner'},
+var S=defaults(), tab='log', viewDate=ymd(new Date()), draft={g:'chest',ex:'',sets:[],mode:'lift',c:{type:'Walking',min:'',dist:'',kcal:''}}, confirmReset=false;
+function defaults(){return {v:1,upd:0,profile:{kg:77,unit:'lb',level:'beginner',rest:75},
   plan:[['chest','triceps'],['back','biceps'],[],['legs','abs'],['shoulders','chest'],[],[]],custom:{},log:{},cardio:{}};}
 /* older entries stored one weight/sets/reps; turn them into per-set rows */
 function migrate(){if(!S.cardio)S.cardio={};Object.keys(S.log).forEach(function(d){S.log[d].forEach(function(e){
@@ -214,11 +214,7 @@ migrate();
 function persist(){
   S.upd=Date.now();
   try{localStorage.setItem('liftlog.v1',JSON.stringify(S));}catch(e){}
-  if(dbDoc){clearTimeout(saveTimer);saveTimer=setTimeout(function(){
-    dbDoc.set({json:JSON.stringify(S)}).then(function(){setSync('Saved');},function(){setSync('Saved on this device only');});
-  },700);}
 }
-function setSync(t){var el=document.getElementById('sync'); if(el) el.textContent=t;}
 
 /* ---------- helpers ---------- */
 function pad(n){return n<10?'0'+n:''+n;}
@@ -242,9 +238,9 @@ function toast(t){var el=document.getElementById('toast');el.textContent=t;el.hi
 /* ---------- estimates ---------- */
 function volOf(e){return e.sets.reduce(function(a,x){return a+x.w*x.r;},0);}
 function entryCalc(e){
-  var m=meta(e.ex,e.g), kg=S.profile.kg, met=m.c?6:3.8, rest=m.c?90:60, sec=0;
+  var m=meta(e.ex,e.g), kg=S.profile.kg, met=m.c?6:3.8, base=S.profile.rest||75, rest=m.c?base:base*.75, sec=0;
   e.sets.forEach(function(x){sec+=(m.timed?x.r:x.r*3.5)+rest;});
-  return {sec:sec,kcal:met*kg*sec/3600,vol:volOf(e)};
+  return {sec:sec,kcal:(met-1)*kg*sec/3600,vol:volOf(e)};
 }
 function dayStats(date){
   var t={kcal:0,min:0,sets:0,vol:0,n:0};
@@ -265,7 +261,7 @@ function cardioMet(type,v){
 function cardioKcal(c){
   if(c.kcal>0)return c.kcal;
   var h=c.min/60, v=c.km>0&&h>0?c.km/h:0;
-  return cardioMet(c.type,v)*S.profile.kg*h;
+  return (cardioMet(c.type,v)-1)*S.profile.kg*h;
 }
 function distUnit(){return unit()==='lb'?'mi':'km';}
 function toDist(km){return unit()==='lb'?km/KM:km;}
@@ -336,11 +332,12 @@ function viewLog(){
   /* add form */
   var g=draft.g, exs=listFor(g);
   if(!draft.ex||!exs.some(function(x){return x.name===draft.ex;}))draft.ex=exs[0].name;
-  var m=meta(draft.ex,g);
+  var m=meta(draft.ex,g), rec=recentEx();
   h+='<section class="card"><h2>Add exercise</h2><div class="seg" style="margin-bottom:12px"><button data-act="mode" data-m="lift" aria-pressed="'+(draft.mode!=='cardio')+'">Weights</button>'+
      '<button data-act="mode" data-m="cardio" aria-pressed="'+(draft.mode==='cardio')+'">Walk / run / cardio</button></div>';
   if(draft.mode==='cardio')h+=cardioForm(isToday)+'</section>';
   else h+='<div class="form">'+
+   (rec.length?'<div class="field"><label>Recent</label><div class="chips">'+rec.map(function(x){return '<button class="chip" style="--gc:var(--g-'+x.g+')" aria-pressed="'+(x.g===g&&x.ex===draft.ex)+'" data-act="quick" data-g="'+x.g+'" data-n="'+esc(x.ex)+'"><i></i>'+esc(x.ex)+'</button>';}).join('')+'</div></div>':'')+
    '<div class="chips">'+GROUPS.map(function(x){return gchip(x.id,g===x.id,'data-act="grp" data-g="'+x.id+'"');}).join('')+'</div>'+
    '<div class="field"><label for="exSel">Exercise</label><select id="exSel" class="inp">'+
      exs.map(function(x){return '<option'+(x.name===draft.ex?' selected':'')+'>'+esc(x.name)+'</option>';}).join('')+'</select></div>'+
@@ -369,9 +366,16 @@ function viewLog(){
       }).join('')+'</div>';
     });
     h+=cardioList();
-    h+='<p class="muted small">Calories use MET values (about 6 for heavy compound lifts, 3.8 for isolation work, and your speed for walking, running and cycling), your body weight, and the time spent. Treat them as accurate to within about 25%. A calorie number typed in from your Watch replaces the estimate.</p>';
+    h+='<p class="muted small">Calories are active calories: what you burn above resting, from MET values (about 6 for heavy compound lifts, 3.8 for isolation work, and your speed for walking, running and cycling), your body weight and the time spent, including your rest between sets. That matches what a watch reports as active calories. Treat them as accurate to within about 25%. A calorie number typed in from your Watch replaces the estimate.</p>';
   }
   return h;
+}
+function recentEx(){
+  var out=[],seen={};
+  Object.keys(S.log).sort().reverse().some(function(d){
+    S.log[d].slice().reverse().some(function(e){var k=e.g+'|'+e.ex;if(!seen[k]){seen[k]=1;out.push({g:e.g,ex:e.ex});}return out.length>=4;});
+    return out.length>=4;});
+  return out;
 }
 function cardioForm(isToday){
   var c=draft.c, du=distUnit();
@@ -463,6 +467,7 @@ function viewSetup(){
   var p=S.profile, h='<section class="card"><h2>You</h2><div class="form">'+
    '<div class="field"><label>Units</label><div class="seg"><button data-act="unit" data-u="lb" aria-pressed="'+(p.unit==='lb')+'">Pounds</button><button data-act="unit" data-u="kg" aria-pressed="'+(p.unit==='kg')+'">Kilograms</button></div></div>'+
    '<div class="field"><label for="bw">Body weight ('+p.unit+')</label><input id="bw" class="inp num" inputmode="decimal" value="'+fmt(toDisp(p.kg),1)+'" data-act-input="bw"></div>'+
+   '<div class="field"><label>Rest between sets</label><div class="seg" style="grid-template-columns:repeat(3,1fr)">'+[[45,'Short · 45s'],[75,'Normal · 75s'],[120,'Long · 2 min']].map(function(r){return '<button data-act="rest" data-s="'+r[0]+'" aria-pressed="'+((p.rest||75)===r[0])+'">'+r[1]+'</button>';}).join('')+'</div></div>'+
    '<div class="field"><label>Lifting experience</label><div class="seg seg3">'+Object.keys(LEVELS).map(function(k){return '<button data-act="level" data-l="'+k+'" aria-pressed="'+(p.level===k)+'">'+LEVELS[k].name+' <span class="small" style="font-weight:400;opacity:.8">· '+LEVELS[k].sub+'</span></button>';}).join('')+'</div></div>'+
    '</div></section>';
   h+='<section class="card"><h2>Exercise library</h2><p class="muted small" style="margin:-4px 0 6px">Every exercise under each muscle group. Add your own to any group.</p>'+
@@ -529,6 +534,7 @@ document.addEventListener('click',function(ev){
   else if(a==='today'){viewDate=ymd(new Date());render();}
   else if(a==='open'){viewDate=t.dataset.d;tab='log';render();window.scrollTo(0,0);}
   else if(a==='grp'){draft.g=t.dataset.g;draft.ex='';draft.ex=listFor(draft.g)[0].name;prefill();render();}
+  else if(a==='quick'){draft.g=t.dataset.g;draft.ex=t.dataset.n;prefill();render();}
   else if(a==='add'){
     var sets=[];
     draft.sets.forEach(function(x){var w=parseFloat(String(x.w).replace(',','.'))||0, r=parseInt(x.r,10);
@@ -559,6 +565,7 @@ document.addEventListener('click',function(ev){
   else if(a==='del'){S.log[viewDate]=entries(viewDate).filter(function(e){return e.id!==t.dataset.id;});if(!S.log[viewDate].length)delete S.log[viewDate];persist();render();}
   else if(a==='plan'){var i=+t.dataset.day,g=t.dataset.g,p=S.plan[i],k=p.indexOf(g);if(k>-1)p.splice(k,1);else p.push(g);persist();render();}
   else if(a==='unit'){S.profile.unit=t.dataset.u;persist();render();}
+  else if(a==='rest'){S.profile.rest=+t.dataset.s;persist();render();}
   else if(a==='level'){S.profile.level=t.dataset.l;persist();render();}
   else if(a==='sample'){sampleData();tab='log';viewDate=ymd(new Date());render();toast('Sample workouts loaded');}
   else if(a==='reset'){confirmReset=true;render();}
@@ -577,6 +584,7 @@ document.addEventListener('input',function(ev){
   else if(t.dataset.cf){draft.c[t.dataset.cf]=t.value;var pv=document.getElementById('cprev');if(pv)pv.textContent=cardioPreview();}
   else if(t.dataset.actInput==='bw'){var v=parseFloat(String(t.value).replace(',','.'));if(v>20&&v<700){S.profile.kg=fromDisp(v);persist();}}
 });
+document.addEventListener('focusin',function(ev){var t=ev.target;if(t.tagName==='INPUT'&&t.classList.contains('inp')&&t.inputMode!=='')setTimeout(function(){try{t.select();}catch(e){}},0);});
 document.addEventListener('change',function(ev){
   if(ev.target.id==='exSel'){draft.ex=ev.target.value;prefill();render();}
   else if(ev.target.id==='ctype'){draft.c.type=ev.target.value;var pv=document.getElementById('cprev');if(pv)pv.textContent=cardioPreview();}
