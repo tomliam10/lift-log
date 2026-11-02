@@ -1,0 +1,23 @@
+{
+  "name": "Lift Log",
+  "short_name": "Lift Log",
+  "description": "Track weights, sets, reps, walks and runs, with calories burned and muscle gain estimates.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ECEEF0",
+  "theme_color": "#1B4DFF",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
