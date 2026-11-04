@@ -191,13 +191,13 @@ var GROUPS=[
 var GBY={}; GROUPS.forEach(function(g){GBY[g.id]=g;});
 /* [name, compound(1/0), secondary-muscle credit, timed(seconds instead of reps)] */
 var LIB={
- chest:[['Barbell bench press',1,{triceps:.4,shoulders:.3}],['Incline dumbbell press',1,{triceps:.3,shoulders:.4}],['Machine chest press',1,{triceps:.3}],['Decline bench press',1,{triceps:.4}],['Dumbbell fly',0],['Cable crossover',0],['Pec deck fly',0],['Push-up',1,{triceps:.3,shoulders:.2}]],
- biceps:[['Barbell curl',0],['Dumbbell curl',0],['Hammer curl',0],['Incline dumbbell curl',0],['Preacher curl',0],['Cable curl',0],['Concentration curl',0]],
- triceps:[['Close-grip bench press',1,{chest:.3}],['Triceps pushdown',0],['Overhead triceps extension',0],['Skull crusher',0],['Bench dip',0],['Cable kickback',0],['Diamond push-up',1,{chest:.3}]],
- back:[['Pull-up',1,{biceps:.4}],['Lat pulldown',1,{biceps:.3}],['Barbell row',1,{biceps:.3}],['Seated cable row',1,{biceps:.3}],['One-arm dumbbell row',1,{biceps:.3}],['T-bar row',1,{biceps:.3}],['Straight-arm pulldown',0],['Face pull',0,{shoulders:.3}],['Back extension',0]],
- shoulders:[['Overhead press',1,{triceps:.4}],['Dumbbell shoulder press',1,{triceps:.3}],['Arnold press',1,{triceps:.3}],['Lateral raise',0],['Front raise',0],['Rear delt fly',0],['Upright row',0],['Barbell shrug',0]],
- legs:[['Squat',1],['Deadlift',1,{back:.5}],['Leg press',1],['Romanian deadlift',1,{back:.3}],['Walking lunge',1],['Bulgarian split squat',1],['Goblet squat',1],['Hip thrust',1],['Leg extension',0],['Leg curl',0],['Standing calf raise',0]],
- abs:[['Crunch',0],['Cable crunch',0],['Hanging leg raise',0],['Ab wheel rollout',0],['Russian twist',0],['Bicycle crunch',0],['Plank',0,null,1]]
+ chest:[['Barbell bench press',1,{triceps:.4,shoulders:.3}],['Incline dumbbell press',1,{triceps:.3,shoulders:.4}],['Machine chest press',1,{triceps:.3}],['Decline bench press',1,{triceps:.4}],['Dumbbell fly',0],['Cable crossover',0],['Pec deck fly',0],['Push-up',1,{triceps:.3,shoulders:.2}],['Cable chest press',1,{triceps:.3,shoulders:.3}],['Single-arm cable chest press',1,{triceps:.3,shoulders:.3}],['Incline cable press',1,{triceps:.3,shoulders:.4}],['Cable fly',0],['Low-to-high cable fly',0],['High-to-low cable fly',0]],
+ biceps:[['Barbell curl',0],['Dumbbell curl',0],['Hammer curl',0],['Incline dumbbell curl',0],['Preacher curl',0],['Cable curl',0],['Concentration curl',0],['Cable hammer curl (rope)',0],['Cable preacher curl',0],['Single-arm cable curl',0],['Cable EZ-bar curl',0],['Overhead cable curl',0],['Bayesian cable curl',0]],
+ triceps:[['Close-grip bench press',1,{chest:.3}],['Triceps pushdown',0],['Overhead triceps extension',0],['Skull crusher',0],['Bench dip',0],['Cable kickback',0],['Diamond push-up',1,{chest:.3}],['Cable pushdown with triangle',0],['Cable rope pushdown',0],['Cable straight-bar pushdown',0],['Cable underhand pushdown',0],['Single-arm cable pushdown',0],['Single-arm underhand cable pushdown',0],['Overhead cable triceps extension (rope)',0]],
+ back:[['Pull-up',1,{biceps:.4}],['Lat pulldown',1,{biceps:.3}],['Barbell row',1,{biceps:.3}],['Seated cable row',1,{biceps:.3}],['One-arm dumbbell row',1,{biceps:.3}],['T-bar row',1,{biceps:.3}],['Straight-arm pulldown',0],['Face pull',0,{shoulders:.3}],['Back extension',0],['Cable row with triangle',1,{biceps:.3}],['Cable wide-grip row',1,{biceps:.3}],['Single-arm cable row',1,{biceps:.3}],['Cable close-grip pulldown (triangle)',1,{biceps:.3}],['Cable underhand pulldown',1,{biceps:.4}],['Single-arm cable pulldown',1,{biceps:.3}],['Cable shrug',0]],
+ shoulders:[['Overhead press',1,{triceps:.4}],['Dumbbell shoulder press',1,{triceps:.3}],['Arnold press',1,{triceps:.3}],['Lateral raise',0],['Front raise',0],['Rear delt fly',0],['Upright row',0],['Barbell shrug',0],['Cable shoulder press',1,{triceps:.3}],['Cable lateral raise',0],['Cable front raise',0],['Cable rear delt fly',0],['Cable upright row',0],['Cable external rotation',0]],
+ legs:[['Squat',1],['Deadlift',1,{back:.5}],['Leg press',1],['Romanian deadlift',1,{back:.3}],['Walking lunge',1],['Bulgarian split squat',1],['Goblet squat',1],['Hip thrust',1],['Leg extension',0],['Leg curl',0],['Standing calf raise',0],['Cable pull-through',1,{back:.3}],['Cable glute kickback',0],['Cable hip abduction',0],['Cable hip adduction',0],['Cable standing leg curl',0]],
+ abs:[['Crunch',0],['Cable crunch',0],['Hanging leg raise',0],['Ab wheel rollout',0],['Russian twist',0],['Bicycle crunch',0],['Plank',0,null,1],['Cable woodchopper (high to low)',0],['Cable woodchopper (low to high)',0],['Cable oblique crunch',0],['Pallof press',0]]
 };
 var LEVELS={beginner:{name:'Beginner',sub:'under 1 year lifting',kg:.9},intermediate:{name:'Intermediate',sub:'1 to 3 years',kg:.45},advanced:{name:'Advanced',sub:'3+ years',kg:.2}};
 
@@ -229,8 +229,10 @@ function fromDisp(v){return unit()==='lb'?v/LB:v;}
 function fmt(n,dp){var f=Math.pow(10,dp==null?1:dp);var v=Math.round(n*f)/f;return v.toLocaleString(undefined,{maximumFractionDigits:dp==null?1:dp});}
 function fmtW(kg){return fmt(toDisp(kg),1);}
 function fmtLong(s){return parse(s).toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});}
-function listFor(g){var base=LIB[g].map(function(a){return {name:a[0],c:a[1],sec:a[2]||null,timed:!!a[3],custom:false};});
-  var cu=(S.custom[g]||[]).map(function(n){return {name:n,c:0,sec:null,timed:false,custom:true};}); return base.concat(cu);}
+var CABLEX=['Triceps pushdown','Lat pulldown','Straight-arm pulldown','Face pull','Pallof press'];
+function isCable(n){return /cable/i.test(n)||CABLEX.indexOf(n)>-1;}
+function listFor(g){var base=LIB[g].map(function(a){return {name:a[0],c:a[1],sec:a[2]||null,timed:!!a[3],custom:false,cable:isCable(a[0])};});
+  var cu=(S.custom[g]||[]).map(function(n){return {name:n,c:0,sec:null,timed:false,custom:true,cable:isCable(n)};}); return base.concat(cu);}
 function meta(name,g){var l=listFor(g);for(var i=0;i<l.length;i++)if(l[i].name===name)return l[i];return {name:name,c:0,sec:null,timed:false};}
 function entries(date){return S.log[date]||[];}
 function toast(t){var el=document.getElementById('toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true;},1800);}
@@ -340,7 +342,7 @@ function viewLog(){
    (rec.length?'<div class="field"><label>Recent</label><div class="chips">'+rec.map(function(x){return '<button class="chip" style="--gc:var(--g-'+x.g+')" aria-pressed="'+(x.g===g&&x.ex===draft.ex)+'" data-act="quick" data-g="'+x.g+'" data-n="'+esc(x.ex)+'"><i></i>'+esc(x.ex)+'</button>';}).join('')+'</div></div>':'')+
    '<div class="chips">'+GROUPS.map(function(x){return gchip(x.id,g===x.id,'data-act="grp" data-g="'+x.id+'"');}).join('')+'</div>'+
    '<div class="field"><label for="exSel">Exercise</label><select id="exSel" class="inp">'+
-     exs.map(function(x){return '<option'+(x.name===draft.ex?' selected':'')+'>'+esc(x.name)+'</option>';}).join('')+'</select></div>'+
+     exOptions(exs)+'</select></div>'+
    '<div class="sets"><div class="setrow hd"><span></span><span class="label">Weight ('+unit()+')</span><span class="label">'+(m.timed?'Seconds':'Reps')+'</span><span></span></div>'+
    draft.sets.map(function(x,i){return '<div class="setrow"><span class="sn num">Set '+(i+1)+'</span>'+
      '<input class="inp num" inputmode="decimal" placeholder="0" aria-label="Set '+(i+1)+' weight" value="'+esc(x.w)+'" data-si="'+i+'" data-sf="w">'+
@@ -369,6 +371,12 @@ function viewLog(){
     h+='<p class="muted small">Calories are active calories: what you burn above resting, from MET values (about 6 for heavy compound lifts, 3.8 for isolation work, and your speed for walking, running and cycling), your body weight and the time spent, including your rest between sets. That matches what a watch reports as active calories. Treat them as accurate to within about 25%. A calorie number typed in from your Watch replaces the estimate.</p>';
   }
   return h;
+}
+function exOptions(exs){
+  var o=function(x){return '<option'+(x.name===draft.ex?' selected':'')+'>'+esc(x.name)+'</option>';};
+  var a=exs.filter(function(x){return !x.cable;}), b=exs.filter(function(x){return x.cable;});
+  if(!a.length||!b.length)return exs.map(o).join('');
+  return '<optgroup label="Free weights and machines">'+a.map(o).join('')+'</optgroup><optgroup label="Cable">'+b.map(o).join('')+'</optgroup>';
 }
 function recentEx(){
   var out=[],seen={};
@@ -472,7 +480,7 @@ function viewSetup(){
    '</div></section>';
   h+='<section class="card"><h2>Exercise library</h2><p class="muted small" style="margin:-4px 0 6px">Every exercise under each muscle group. Add your own to any group.</p>'+
     GROUPS.map(function(g){var l=listFor(g.id);return '<details class="libgroup" style="--gc:var(--g-'+g.id+')"><summary><i></i>'+g.name+' <span class="muted small" style="font-family:var(--body);text-transform:none;letter-spacing:0">'+l.length+' exercises</span></summary><ul>'+
-      l.map(function(x){return '<li><span>'+esc(x.name)+(x.c?'<span class="tag">compound</span>':'')+(x.timed?'<span class="tag">timed</span>':'')+'</span>'+(x.custom?'<button class="linkbtn" data-act="rmcustom" data-g="'+g.id+'" data-n="'+esc(x.name)+'">Remove</button>':'')+'</li>';}).join('')+
+      l.map(function(x){return '<li><span>'+esc(x.name)+(x.c?'<span class="tag">compound</span>':'')+(x.cable?'<span class="tag">cable</span>':'')+(x.timed?'<span class="tag">timed</span>':'')+'</span>'+(x.custom?'<button class="linkbtn" data-act="rmcustom" data-g="'+g.id+'" data-n="'+esc(x.name)+'">Remove</button>':'')+'</li>';}).join('')+
       '</ul><div class="addrow"><input class="inp" id="cu-'+g.id+'" placeholder="Add a '+g.name.toLowerCase()+' exercise" aria-label="New '+g.name+' exercise"><button class="btn sm" data-act="addcustom" data-g="'+g.id+'">Add</button></div></details>';}).join('')+'</section>';
   h+='<section class="card"><h2>Send to NutriSnap</h2><p class="muted small" style="margin:-4px 0 10px">Saves the calories you burned as a NutriSnap file: one entry per day for weights, and one for each walk or run. In NutriSnap open Profile, tap Restore, and pick the file. Your meals and profile there stay as they are.</p>'+
     '<div class="addrow" style="margin-top:0"><button class="btn sm" data-act="nutri" data-r="today">Today</button><button class="btn sm" data-act="nutri" data-r="week">Last 7 days</button><button class="btn sm" data-act="nutri" data-r="all">Everything</button></div>'+
