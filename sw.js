@@ -1,5 +1,5 @@
 // Caches the app shell so Lift Log opens with no connection.
-const CACHE = 'liftlog-v4';
+const CACHE = 'liftlog-v5';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './fonts/Barlow-400.woff2', './fonts/Barlow-500.woff2', './fonts/Barlow-600.woff2', './fonts/BarlowCondensed-600.woff2', './fonts/BarlowCondensed-700.woff2'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
