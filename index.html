@@ -205,11 +205,11 @@ var LIB={
 var LEVELS={beginner:{name:'Beginner',sub:'under 1 year lifting',kg:.9},intermediate:{name:'Intermediate',sub:'1 to 3 years',kg:.45},advanced:{name:'Advanced',sub:'3+ years',kg:.2}};
 
 /* ---------- state ---------- */
-var S=defaults(), tab='log', viewDate=ymd(new Date()), draft={g:'chest',ex:'',sets:[],mode:'lift',c:{type:'Walking',min:'',dist:'',kcal:''}}, confirmReset=false;
+var S=defaults(), tab='log', viewDate=ymd(new Date()), draft={g:'chest',ex:'',sets:[],mode:'lift',c:{type:'Walking',min:'',dist:'',kcal:''}}, confirmReset=false, nsOpen=false;
 function defaults(){return {v:1,upd:0,profile:{kg:77,unit:'lb',level:'beginner',rest:75},
-  plan:[['chest','triceps'],['back','biceps'],[],['legs','abs'],['shoulders','chest'],[],[]],custom:{},log:{},cardio:{}};}
+  plan:[['chest','triceps'],['back','biceps'],[],['legs','abs'],['shoulders','chest'],[],[]],custom:{},log:{},cardio:{},nutrition:{}};}
 /* older entries stored one weight/sets/reps; turn them into per-set rows */
-function migrate(){if(!S.cardio)S.cardio={};Object.keys(S.log).forEach(function(d){S.log[d].forEach(function(e){
+function migrate(){if(!S.cardio)S.cardio={};if(!S.nutrition)S.nutrition={};Object.keys(S.log).forEach(function(d){S.log[d].forEach(function(e){
   if(e.sets)return; var a=[];for(var i=0;i<(e.s||1);i++)a.push({w:e.w||0,r:e.r||0}); e.sets=a; delete e.w; delete e.s; delete e.r;});});}
 try{var raw=localStorage.getItem('liftlog.v1'); if(raw){var p=JSON.parse(raw); if(p&&p.log) S=p;}}catch(e){}
 migrate();
@@ -247,7 +247,7 @@ function listFor(g){var base=LIB[g].map(function(a){return {name:a[0],c:a[1],sec
   var cu=(S.custom[g]||[]).map(function(n){return {name:n,c:0,sec:null,timed:false,custom:true,cable:isCable(n),kind:kindOf(n)};}); return base.concat(cu);}
 function meta(name,g){var l=listFor(g);for(var i=0;i<l.length;i++)if(l[i].name===name)return l[i];return {name:name,c:0,sec:null,timed:false};}
 function entries(date){return S.log[date]||[];}
-function toast(t){var el=document.getElementById('toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true;},1800);}
+function toast(t,ms){var el=document.getElementById('toast');el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true;},ms||1800);}
 
 /* ---------- estimates ---------- */
 function volOf(e){return e.sets.reduce(function(a,x){return a+x.w*x.r;},0);}
@@ -342,6 +342,8 @@ function viewLog(){
      '<div><div class="v">'+fmt(st.min,0)+'</div><div class="u">minutes</div></div>'+
      '<div><div class="v">'+st.sets+'</div><div class="u">sets</div></div>'+
      '<div><div class="v">'+fmt(toDisp(st.vol),0)+'</div><div class="u">'+unit()+' lifted</div></div></div>';
+  var nu=S.nutrition&&S.nutrition[viewDate];
+  if(nu)h+='<div class="small muted num">🍽 Eaten: <b style="color:var(--ink)">'+fmt(nu.kcal,0)+' kcal</b> · protein <b style="color:var(--ink)">'+fmt(nu.protein,0)+' g</b> · carbs '+fmt(nu.carbs,0)+' g · fat '+fmt(nu.fat,0)+' g · from NutriSnap</div>';
 
   /* add form */
   var g=draft.g, exs=listFor(g);
@@ -423,7 +425,7 @@ function cardioList(){
     var pc=paceOf(c);
     return '<div class="entry"><div class="nm">'+esc(c.type)+'</div><div class="main num x">~'+fmt(cardioKcal(c),0)+' kcal</div>'+
       '<div class="setlist num"><span>'+fmt(c.min,1)+' min</span>'+(c.km>0?'<span>'+fmt(toDist(c.km),2)+' '+distUnit()+'</span>':'')+(pc?'<span>'+pc+'</span>':'')+'</div>'+
-      '<div class="detail">'+(c.kcal>0?'Calories from your Watch':'Estimated from '+(c.km>0?'speed':'activity type')+' and your body weight')+'</div></div>'+
+      '<div class="detail">'+(c.kcal>0?(c.src==='NutriSnap'?'Imported from NutriSnap':'Calories from your Watch'):'Estimated from '+(c.km>0?'speed':'activity type')+' and your body weight')+'</div></div>'+
       '<button class="del" data-act="cdel" data-id="'+c.id+'">Remove '+esc(c.type)+'</button>';}).join('')+'</div>';
 }
 
@@ -494,9 +496,18 @@ function viewSetup(){
     GROUPS.map(function(g){var l=listFor(g.id);return '<details class="libgroup" style="--gc:var(--g-'+g.id+')"><summary><i></i>'+g.name+' <span class="muted small" style="font-family:var(--body);text-transform:none;letter-spacing:0">'+l.length+' exercises</span></summary><ul>'+
       l.map(function(x){return '<li><span>'+esc(x.name)+(x.c?'<span class="tag">compound</span>':'')+(x.kind&&x.kind!=='other'?'<span class="tag">'+x.kind+'</span>':'')+(x.timed?'<span class="tag">timed</span>':'')+'</span>'+(x.custom?'<button class="linkbtn" data-act="rmcustom" data-g="'+g.id+'" data-n="'+esc(x.name)+'">Remove</button>':'')+'</li>';}).join('')+
       '</ul><div class="addrow"><input class="inp" id="cu-'+g.id+'" placeholder="Add a '+g.name.toLowerCase()+' exercise" aria-label="New '+g.name+' exercise"><button class="btn sm" data-act="addcustom" data-g="'+g.id+'">Add</button></div></details>';}).join('')+'</section>';
-  h+='<section class="card"><h2>Send to NutriSnap</h2><p class="muted small" style="margin:-4px 0 10px">Saves the calories you burned as a NutriSnap file: one entry per day for weights, and one for each walk or run. In NutriSnap open Profile, tap Restore, and pick the file. Your meals and profile there stay as they are.</p>'+
+  h+='<details id="nsdet" class="card"'+(nsOpen?' open':'')+'><summary style="cursor:pointer"><b>Connect with NutriSnap</b> <span class="muted small">(optional)</span></summary>'+
+    '<p class="muted small" style="margin:8px 0 0">Only if you also use the NutriSnap app. Lift Log works fully on its own.</p><div style="display:flex;flex-direction:column;gap:16px;margin-top:14px">';
+  h+='<section class="card"><h2>Send to NutriSnap</h2><p class="muted small" style="margin:-4px 0 10px">Saves or copies the calories you burned for NutriSnap: one entry per day for weights, and one for each walk or run. In NutriSnap open Profile, tap Import from Lift Log, then paste the copied text or choose the saved file. NutriSnap skips weight sessions unless you tick the box there. Your meals and profile stay as they are.</p>'+
     '<div class="addrow" style="margin-top:0"><button class="btn sm" data-act="nutri" data-r="today">Today</button><button class="btn sm" data-act="nutri" data-r="week">Last 7 days</button><button class="btn sm" data-act="nutri" data-r="all">Everything</button></div>'+
+    '<div class="addrow" style="margin-top:8px"><button class="btn sm" data-act="nutricopy" data-r="today">Copy today</button><button class="btn sm" data-act="nutricopy" data-r="week">Copy last 7 days</button><button class="btn sm" data-act="nutricopy" data-r="all">Copy everything</button></div>'+
+    '<div id="copyfallback"></div>'+
     '<p class="muted small" style="margin:10px 0 0">Send a day once you finish it. NutriSnap skips entries it already has, so if you add more sets after sending, delete that day\'s entry in NutriSnap before sending again.</p></section>';
+  h+='<section class="card"><h2>Import from NutriSnap</h2><p class="muted small" style="margin:-4px 0 10px">Brings in the workouts you logged in NutriSnap (from watch screenshots or typed) plus your daily calories and protein, and your body weight. In NutriSnap open Profile, tap Copy for Lift Log, then paste the text here, or choose the saved file.</p>'+
+    '<textarea id="nsin" class="inp" rows="4" style="width:100%;font-size:13px" placeholder="Paste the NutriSnap text here" aria-label="NutriSnap text"></textarea>'+
+    '<div class="addrow"><button class="btn sm" data-act="nsimport">Import</button><label class="btn sm ghost" style="display:inline-block;text-align:center">Choose file…<input type="file" id="nsfile" accept="application/json,.json,text/plain" hidden></label></div>'+
+    '<p class="muted small" style="margin:10px 0 0">Workouts that started in Lift Log are not brought back, and importing the same text twice adds nothing new.</p></section>';
+  h+='</div></details>';
   h+='<section class="card"><h2>Data</h2><div class="form"><button class="btn ghost" data-act="backup">Back up my data</button><button class="btn ghost" data-act="restore">Restore from a backup (replaces current data)</button><button class="btn ghost" data-act="sample">Load sample workouts</button>'+
     (confirmReset?'<p class="small" style="margin:0">This deletes every logged workout and your plan. It cannot be undone.</p><div class="seg"><button class="btn danger" data-act="reset-yes" style="background:var(--bad);color:#fff;border-color:var(--bad)">Delete everything</button><button data-act="reset-no">Keep my data</button></div>':'<button class="btn ghost" data-act="reset">Erase all my data</button>')+'</div></section>';
   return h;
@@ -517,11 +528,55 @@ function nutriExport(range){
     var base=Number(d.replace(/-/g,''))*100, list=[], es=entries(d);
     if(es.length){var k=0,m=0,gs=[];es.forEach(function(e){var c=entryCalc(e);k+=c.kcal;m+=c.sec/60;if(gs.indexOf(e.g)<0)gs.push(e.g);});
       list.push({id:base,type:'exercise',name:'Weights: '+gs.map(function(g){return GBY[g].name;}).join(', '),burned:Math.round(k),duration_min:Math.round(m),distance_km:0});}
-    cardioOf(d).forEach(function(c,i){list.push({id:base+1+i,type:'exercise',name:c.type,burned:Math.round(cardioKcal(c)),duration_min:Math.round(c.min),distance_km:c.km>0?Math.round(c.km*100)/100:0});});
+    cardioOf(d).filter(function(c){return c.src!=='NutriSnap';}).forEach(function(c,i){list.push({id:base+1+i,type:'exercise',name:c.type,burned:Math.round(cardioKcal(c)),duration_min:Math.round(c.min),distance_km:c.km>0?Math.round(c.km*100)/100:0});});
     if(list.length){out[d]=list;n+=list.length;}
   });
-  return {n:n,backup:{app:'nutrisnap',version:1,exported:new Date().toISOString(),log:out}};
+  var wk=(S.profile.kgSet||S.profile.kg!==77)?Math.round(S.profile.kg*10)/10:undefined;
+  return {n:n,backup:{app:'nutrisnap',version:1,exported:new Date().toISOString(),weight_kg:wk,log:out}};
 }
+/* ---------- import from NutriSnap: workouts become cardio entries, meals become a daily nutrition total ---------- */
+function cardioType(name){
+  var n=String(name||'');
+  if(/jump rope|skipping/i.test(n))return 'Jump rope';
+  if(/battle/i.test(n))return 'Battle ropes';
+  if(/stair/i.test(n))return 'Stair climber';
+  if(/ellip/i.test(n))return 'Elliptical';
+  if(/row/i.test(n))return 'Rowing machine';
+  if(/cycl|bike|biking|spin/i.test(n))return 'Cycling';
+  if(/hik/i.test(n))return 'Hiking';
+  if(/run|jog/i.test(n))return 'Running';
+  if(/walk/i.test(n))return 'Walking';
+  return n.slice(0,40)||'Workout';
+}
+function importNutri(text){
+  var b; try{b=JSON.parse(text);}catch(e){b=null;}
+  if(!b||b.app!=='nutrisnap'||!b.log||typeof b.log!=='object')return {err:"That isn't NutriSnap text. In NutriSnap use Profile, then Copy for Lift Log."};
+  var w=0,days=0,dup=0,skipped=0;
+  if(!S.nutrition)S.nutrition={};
+  Object.keys(b.log).forEach(function(d){
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(d)||!Array.isArray(b.log[d]))return;
+    var food={kcal:0,protein:0,carbs:0,fat:0,n:0};
+    b.log[d].forEach(function(x){
+      if(!x||typeof x!=='object')return;
+      if(x.type==='exercise'){
+        if(x.source==='Lift Log'||(typeof x.id==='number'&&x.id<1e11)){skipped++;return;}
+        var burned=+x.burned; if(!(burned>0))return;
+        var id='n'+x.id, list=S.cardio[d]||(S.cardio[d]=[]);
+        if(list.some(function(c){return c.id===id;})){dup++;return;}
+        list.push({id:id,type:cardioType(x.name),min:+x.duration_min>0?+x.duration_min:0,km:+x.distance_km>0?+x.distance_km:0,kcal:Math.round(burned),src:'NutriSnap'});w++;
+      }else if(typeof x.calories==='number'){
+        food.kcal+=x.calories;food.protein+=+x.protein_g||0;food.carbs+=+x.carbs_g||0;food.fat+=+x.fat_g||0;food.n++;
+      }
+    });
+    if(S.cardio[d]&&!S.cardio[d].length)delete S.cardio[d];
+    if(food.n){S.nutrition[d]={kcal:Math.round(food.kcal),protein:Math.round(food.protein),carbs:Math.round(food.carbs),fat:Math.round(food.fat),n:food.n};days++;}
+  });
+  var wk=+b.weight_kg, wmsg='';
+  if(wk>=20&&wk<=300&&Math.abs(S.profile.kg-wk)>=0.05){S.profile.kg=Math.round(wk*10)/10;S.profile.kgSet=true;wmsg=' · weight now '+fmt(toDisp(S.profile.kg),1)+' '+unit();}
+  persist();render();
+  return {msg:'Imported '+w+' workout'+(w===1?'':'s')+' · nutrition for '+days+' day'+(days===1?'':'s')+(dup?' · '+dup+' already here':'')+(skipped?' · '+skipped+' from Lift Log skipped':'')+wmsg};
+}
+function runNutriImport(text){var r=importNutri(String(text||'').trim());toast(r.err||r.msg,r.err?3500:4500);}
 /* ---------- actions ---------- */
 function prefill(){
   var l=lastEver(draft.ex);
@@ -570,6 +625,16 @@ document.addEventListener('click',function(ev){
   }
   else if(a==='backup'){saveFile('liftlog-backup-'+ymd(new Date())+'.json','application/json',JSON.stringify({app:'liftlog',version:1,exported:new Date().toISOString(),state:S})).then(function(ok){if(ok)toast('Backup saved. Keep the file somewhere safe.');});}
   else if(a==='restore'){document.getElementById('impIn').click();}
+  else if(a==='nutricopy'){
+    var rc=nutriExport(t.dataset.r); if(!rc.n){toast('No workouts in that range');return;}
+    var txt=JSON.stringify(rc.backup);
+    var copied=function(){toast('Copied '+rc.n+' workout'+(rc.n>1?'s':'')+'. Paste it in NutriSnap.');};
+    var manual=function(){var box=document.getElementById('copyfallback'); if(!box)return;
+      box.innerHTML='<p class="small muted" style="margin:10px 0 4px">Select all, copy, then paste into NutriSnap:</p><textarea class="inp" id="copytxt" readonly rows="4" style="width:100%;font-size:12px"></textarea>';
+      var ta=document.getElementById('copytxt'); ta.value=txt; ta.focus(); ta.select(); toast('Tap the text, then copy it');};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).then(copied,manual); else manual();
+  }
+  else if(a==='nsimport'){var nta=document.getElementById('nsin');runNutriImport(nta?nta.value:'');}
   else if(a==='mode'){draft.mode=t.dataset.m;render();}
   else if(a==='cadd'){
     var x=readCardio(); if(!(x.min>0)){toast('Enter the minutes first');return;}
@@ -598,15 +663,17 @@ document.addEventListener('click',function(ev){
   else if(a==='rmcustom'){var arr=S.custom[t.dataset.g]||[];S.custom[t.dataset.g]=arr.filter(function(n){return n!==t.dataset.n;});persist();
     var og=t.dataset.g;render();var d2=document.querySelectorAll('.libgroup');GROUPS.forEach(function(g,i){if(g.id===og)d2[i].open=true;});}
 });
+document.addEventListener('toggle',function(ev){if(ev.target&&ev.target.id==='nsdet')nsOpen=ev.target.open;},true);
 document.addEventListener('input',function(ev){
   var t=ev.target;
   if(t.dataset.sf){draft.sets[+t.dataset.si][t.dataset.sf]=t.value;}
   else if(t.dataset.cf){draft.c[t.dataset.cf]=t.value;var pv=document.getElementById('cprev');if(pv)pv.textContent=cardioPreview();}
-  else if(t.dataset.actInput==='bw'){var v=parseFloat(String(t.value).replace(',','.'));if(v>20&&v<700){S.profile.kg=fromDisp(v);persist();}}
+  else if(t.dataset.actInput==='bw'){var v=parseFloat(String(t.value).replace(',','.'));if(v>20&&v<700){S.profile.kg=fromDisp(v);S.profile.kgSet=true;persist();}}
 });
 document.addEventListener('focusin',function(ev){var t=ev.target;if(t.tagName==='INPUT'&&t.classList.contains('inp')&&t.inputMode!=='')setTimeout(function(){try{t.select();}catch(e){}},0);});
 document.addEventListener('change',function(ev){
   if(ev.target.id==='exSel'){draft.ex=ev.target.value;prefill();render();}
+  else if(ev.target.id==='nsfile'){var nf=ev.target.files&&ev.target.files[0];ev.target.value='';if(nf){var fr=new FileReader();fr.onload=function(){runNutriImport(fr.result);};fr.readAsText(nf);}}
   else if(ev.target.id==='ctype'){draft.c.type=ev.target.value;var pv=document.getElementById('cprev');if(pv)pv.textContent=cardioPreview();}
 });
 
